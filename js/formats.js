@@ -80,3 +80,31 @@ window.CATEGORY_META = {
     }
   }
 };
+
+window.IMAGE_CIRCLE_DATA = [
+  { id: "s16",        name: "Super 16",          diameter: 14.54, notes: "16mm cine lenses" },
+  { id: "mft",        name: "Micro Four Thirds",  diameter: 21.63, notes: "MFT mount (Panasonic, OM System)" },
+  { id: "aps-c-s35",  name: "APS-C / Super 35",   diameter: 28.4,  notes: "Canon EF-S, Fuji X, Sony E (APS-C)" },
+  { id: "pv",         name: "Panavision PV",       diameter: 30,    notes: "Panavision Primo, C/D/E/T series" },
+  { id: "pl-s35",     name: "PL (Super 35)",       diameter: 33,    notes: "ARRI PL mount, S35 coverage" },
+  { id: "ef-rf",      name: "Full Frame 35mm Still", diameter: 43.27, notes: "Canon EF/RF, Nikon Z/F, Sony FE" },
+  { id: "arri-lpl",   name: "ARRI LPL",            diameter: 46,    notes: "Large PL mount, Alexa Mini LF / LF" },
+  { id: "zeiss-sp",   name: "Zeiss Supreme Prime",  diameter: 46.3,  notes: "Large-format cine primes, PL/LPL mount" },
+  { id: "gfx",        name: "Fujifilm G Mount",    diameter: 55,    notes: "GFX medium format system" },
+  { id: "alexa65-xpl",name: "ARRI Alexa 65 XPL",   diameter: 60,    notes: "65mm format, Alexa 65 / ALEXA XT Plus" },
+  { id: "mf-6x7",     name: "Medium Format 6\u00D77", diameter: 90, notes: "Mamiya RB/RZ67, Pentax 67 lenses" }
+];
+
+window.IMAGE_CIRCLE_META = {
+  "s16":         { color: "#E08050" },
+  "mft":         { color: "#C87838" },
+  "aps-c-s35":   { color: "#D06040" },
+  "pv":          { color: "#CC6644" },
+  "pl-s35":      { color: "#D4782C" },
+  "ef-rf":       { color: "#1A9E8F" },
+  "arri-lpl":    { color: "#2EAAD4" },
+  "zeiss-sp":    { color: "#5599DD" },
+  "gfx":         { color: "#3AAA55" },
+  "alexa65-xpl": { color: "#4488CC" },
+  "mf-6x7":      { color: "#48B880" }
+};

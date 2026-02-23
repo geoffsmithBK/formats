@@ -1,6 +1,7 @@
 /**
  * Film & Sensor Format Comparison Tool — Application Logic
- * Depends on: window.FORMAT_DATA, window.CATEGORY_META (from formats.js)
+ * Depends on: window.FORMAT_DATA, window.CATEGORY_META,
+ *             window.IMAGE_CIRCLE_DATA, window.IMAGE_CIRCLE_META (from formats.js)
  */
 
 (function () {
@@ -12,26 +13,36 @@
   var formats = [];
   var formatById = {};
 
+  // ===== Merged data: image circles enriched with color =====
+  var imageCircles = [];
+  var circleById = {};
+
   // ===== State =====
   var state = {
-    selected: {},   // id -> true
-    highlighted: null // id or null
+    selected: {},           // format id -> true
+    highlighted: null,      // format id or null
+    circles: {},            // circle id -> true
+    highlightedCircle: null // circle id or null
   };
 
   // ===== DOM refs =====
-  var svgEl, emptyStateEl, controlsListEl, detailsSection, detailsBody, tooltipEl;
+  var svgEl, emptyStateEl, controlsListEl, circlesListEl, detailsSection, detailsBody, detailsHead, tooltipEl;
 
   // ===== Init =====
   function init() {
     svgEl = document.getElementById("format-svg");
     emptyStateEl = document.getElementById("empty-state");
     controlsListEl = document.getElementById("controls-list");
+    circlesListEl = document.getElementById("circles-list");
     detailsSection = document.getElementById("details-section");
     detailsBody = document.getElementById("details-body");
+    detailsHead = document.querySelector("#details-table thead tr");
     tooltipEl = document.getElementById("tooltip");
 
     mergeFormatMetadata();
+    mergeCircleData();
     buildControls();
+    buildCircleControls();
     wireGlobalButtons();
 
     // Start with a useful default: select a few representative formats
@@ -77,7 +88,27 @@
     }
   }
 
-  // ===== Build Controls =====
+  // ===== Merge image circle data with meta =====
+  function mergeCircleData() {
+    var data = window.IMAGE_CIRCLE_DATA;
+    var meta = window.IMAGE_CIRCLE_META;
+
+    for (var i = 0; i < data.length; i++) {
+      var c = {};
+      for (var k in data[i]) c[k] = data[i][k];
+
+      if (meta[c.id]) {
+        c.color = meta[c.id].color;
+      } else {
+        c.color = "#999";
+      }
+
+      imageCircles.push(c);
+      circleById[c.id] = c;
+    }
+  }
+
+  // ===== Build Format Controls =====
   function buildControls() {
     // Group formats by category, sorted by category order
     var catMap = {};
@@ -177,10 +208,61 @@
     }
   }
 
+  // ===== Build Circle Controls =====
+  function buildCircleControls() {
+    circlesListEl.innerHTML = "";
+
+    for (var i = 0; i < imageCircles.length; i++) {
+      var c = imageCircles[i];
+      var row = document.createElement("div");
+      row.className = "circle-row";
+      row.setAttribute("data-circle-id", c.id);
+
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.id = "cb-circle-" + c.id;
+      cb.setAttribute("data-circle-id", c.id);
+
+      var swatch = document.createElement("span");
+      swatch.className = "circle-swatch";
+      swatch.style.borderColor = c.color;
+
+      var lbl = document.createElement("label");
+      lbl.htmlFor = "cb-circle-" + c.id;
+      lbl.textContent = c.name;
+
+      var diam = document.createElement("span");
+      diam.className = "circle-diameter";
+      diam.textContent = "\u2300" + c.diameter + "mm";
+
+      row.appendChild(cb);
+      row.appendChild(swatch);
+      row.appendChild(lbl);
+      row.appendChild(diam);
+
+      // Checkbox change
+      cb.addEventListener("change", (function (id) {
+        return function (e) {
+          toggleCircle(id, e.target.checked);
+        };
+      })(c.id));
+
+      // Hover cross-linking
+      row.addEventListener("mouseenter", (function (id) {
+        return function () { onCircleHover(id); };
+      })(c.id));
+      row.addEventListener("mouseleave", function () { onCircleUnhover(); });
+
+      circlesListEl.appendChild(row);
+    }
+  }
+
   // ===== Global Buttons =====
   function wireGlobalButtons() {
     document.getElementById("btn-select-all").addEventListener("click", selectAll);
     document.getElementById("btn-deselect-all").addEventListener("click", deselectAll);
+    document.getElementById("btn-circles-all").addEventListener("click", selectAllCircles);
+    document.getElementById("btn-circles-none").addEventListener("click", deselectAllCircles);
   }
 
   // ===== State Mutations =====
@@ -222,6 +304,30 @@
     render();
   }
 
+  function toggleCircle(id, checked) {
+    if (checked) {
+      state.circles[id] = true;
+    } else {
+      delete state.circles[id];
+    }
+    updateCircleCheckboxes();
+    render();
+  }
+
+  function selectAllCircles() {
+    for (var i = 0; i < imageCircles.length; i++) {
+      state.circles[imageCircles[i].id] = true;
+    }
+    updateCircleCheckboxes();
+    render();
+  }
+
+  function deselectAllCircles() {
+    state.circles = {};
+    updateCircleCheckboxes();
+    render();
+  }
+
   // ===== Update control checkboxes to match state =====
   function updateControlCheckboxes() {
     // Individual checkboxes
@@ -246,6 +352,22 @@
     }
   }
 
+  function updateCircleCheckboxes() {
+    var cbs = circlesListEl.querySelectorAll('input[data-circle-id]');
+    for (var i = 0; i < cbs.length; i++) {
+      cbs[i].checked = !!state.circles[cbs[i].getAttribute("data-circle-id")];
+    }
+  }
+
+  // ===== Active circles helper =====
+  function getActiveCircles() {
+    var result = [];
+    for (var i = 0; i < imageCircles.length; i++) {
+      if (state.circles[imageCircles[i].id]) result.push(imageCircles[i]);
+    }
+    return result;
+  }
+
   // ===== Render =====
   function render() {
     renderSVG();
@@ -262,8 +384,10 @@
       }
     }
 
+    var activeCircles = getActiveCircles();
+
     // Empty state
-    if (selected.length === 0) {
+    if (selected.length === 0 && activeCircles.length === 0) {
       svgEl.innerHTML = "";
       emptyStateEl.classList.remove("hidden");
       return;
@@ -274,12 +398,20 @@
       return (b.width * b.height) - (a.width * a.height);
     });
 
-    // Compute viewBox
+    // Sort circles largest first
+    activeCircles.sort(function (a, b) { return b.diameter - a.diameter; });
+
+    // Compute viewBox — include both formats and circles
     var maxW = 0, maxH = 0;
     for (var i = 0; i < selected.length; i++) {
       if (selected[i].width > maxW) maxW = selected[i].width;
       if (selected[i].height > maxH) maxH = selected[i].height;
     }
+    for (var i = 0; i < activeCircles.length; i++) {
+      if (activeCircles[i].diameter > maxW) maxW = activeCircles[i].diameter;
+      if (activeCircles[i].diameter > maxH) maxH = activeCircles[i].diameter;
+    }
+
     var pad = Math.max(maxW, maxH) * 0.18;
     var vbW = maxW + pad * 2;
     var vbH = maxH + pad * 2;
@@ -309,6 +441,13 @@
     frag.appendChild(lineH);
     frag.appendChild(lineV);
 
+    // Image circles (largest first = back, behind format rects)
+    for (var i = 0; i < activeCircles.length; i++) {
+      var c = activeCircles[i];
+      var cg = createCircleGroup(c, i, activeCircles.length, strokeW, highlightStrokeW, fontSize, smallFontSize);
+      frag.appendChild(cg);
+    }
+
     // Format rectangles (largest first = back)
     for (var i = 0; i < selected.length; i++) {
       var f = selected[i];
@@ -320,19 +459,95 @@
     svgEl.appendChild(frag);
   }
 
-  function createFormatGroup(f, index, total, strokeW, highlightStrokeW, fontSize, smallFontSize, maxH) {
+  function createCircleGroup(c, index, total, strokeW, highlightStrokeW, fontSize, smallFontSize) {
+    var anyHighlight = state.highlighted !== null || state.highlightedCircle !== null;
+    var isHighlighted = state.highlightedCircle === c.id;
+
+    var cls = "circle-group";
+    if (anyHighlight && !isHighlighted) {
+      cls += " dimmed";
+    } else if (isHighlighted) {
+      cls += " highlighted";
+    }
+
     var g = createSVGElement("g", {
-      "class": "format-group",
-      "data-format-id": f.id
+      "class": cls,
+      "data-circle-id": c.id
     });
 
+    var sw = isHighlighted ? highlightStrokeW : strokeW * 0.8;
+    var r = c.diameter / 2;
+
+    var circle = createSVGElement("circle", {
+      cx: 0,
+      cy: 0,
+      r: r,
+      fill: c.color,
+      "fill-opacity": isHighlighted ? 0.08 : 0.04,
+      stroke: c.color,
+      "stroke-width": sw,
+      "stroke-dasharray": "4 3",
+      "stroke-opacity": isHighlighted ? 1 : 0.6
+    });
+    g.appendChild(circle);
+
+    // Label centered above circle
+    var labelY = -r - fontSize * 0.4;
+    var text = createSVGElement("text", {
+      x: 0,
+      y: labelY,
+      fill: c.color,
+      "font-size": smallFontSize,
+      "font-family": "-apple-system, BlinkMacSystemFont, sans-serif",
+      "font-weight": "400",
+      "font-style": "italic",
+      "text-anchor": "middle",
+      "dominant-baseline": "auto",
+      opacity: isHighlighted ? 1 : 0.7
+    });
+    text.textContent = c.name + " \u2300" + c.diameter + "mm";
+    g.appendChild(text);
+
+    // Interaction handlers
+    g.addEventListener("mouseenter", function (e) {
+      onCircleHover(c.id);
+      showCircleTooltip(c, e);
+    });
+    g.addEventListener("mousemove", function (e) {
+      moveTooltip(e);
+    });
+    g.addEventListener("mouseleave", function () {
+      onCircleUnhover();
+      hideTooltip();
+    });
+    g.addEventListener("click", function () {
+      if (state.circles[c.id]) {
+        delete state.circles[c.id];
+      } else {
+        state.circles[c.id] = true;
+      }
+      updateCircleCheckboxes();
+      render();
+    });
+
+    return g;
+  }
+
+  function createFormatGroup(f, index, total, strokeW, highlightStrokeW, fontSize, smallFontSize, maxH) {
+    var anyHighlight = state.highlighted !== null || state.highlightedCircle !== null;
     var isHighlighted = state.highlighted === f.id;
-    var hasSomeHighlight = state.highlighted !== null;
-    if (hasSomeHighlight && !isHighlighted) {
-      g.setAttribute("class", "format-group dimmed");
+
+    var cls = "format-group";
+    if (anyHighlight && !isHighlighted) {
+      cls += " dimmed";
     } else if (isHighlighted) {
-      g.setAttribute("class", "format-group highlighted");
+      cls += " highlighted";
     }
+
+    var g = createSVGElement("g", {
+      "class": cls,
+      "data-format-id": f.id
+    });
 
     var sw = isHighlighted ? highlightStrokeW : strokeW;
 
@@ -430,6 +645,14 @@
     // Sort by diagonal descending
     selected.sort(function (a, b) { return b.diagonal - a.diagonal; });
 
+    var activeCircles = getActiveCircles();
+    activeCircles.sort(function (a, b) { return a.diameter - b.diameter; });
+
+    // Rebuild header to include/exclude coverage column
+    rebuildDetailsHeader(activeCircles);
+
+    var anyHighlight = state.highlighted !== null || state.highlightedCircle !== null;
+
     detailsBody.innerHTML = "";
     for (var i = 0; i < selected.length; i++) {
       var f = selected[i];
@@ -437,8 +660,7 @@
       tr.setAttribute("data-format-id", f.id);
 
       var isHighlighted = state.highlighted === f.id;
-      var hasSomeHighlight = state.highlighted !== null;
-      if (hasSomeHighlight && !isHighlighted) {
+      if (anyHighlight && !isHighlighted) {
         tr.className = "dimmed";
       } else if (isHighlighted) {
         tr.className = "highlighted";
@@ -457,8 +679,24 @@
       tr.appendChild(makeCell(f.height.toFixed(2)));
       tr.appendChild(makeCell(f.diagonal.toFixed(2)));
       tr.appendChild(makeCell(computeAspectRatio(f.width, f.height)));
-      tr.appendChild(makeCell(f.medium || "—"));
+      tr.appendChild(makeCell(f.medium || "\u2014"));
       tr.appendChild(makeCell(f.categoryLabel));
+
+      // Coverage column (only when circles are active)
+      if (activeCircles.length > 0) {
+        var tdCov = document.createElement("td");
+        tdCov.className = "coverage-cell";
+        for (var j = 0; j < activeCircles.length; j++) {
+          var c = activeCircles[j];
+          var covered = f.diagonal <= c.diameter;
+          var span = document.createElement("span");
+          span.className = covered ? "coverage-ok" : "coverage-no";
+          span.title = c.name + " (\u2300" + c.diameter + "mm)";
+          span.textContent = covered ? "\u2713" : "\u2717";
+          tdCov.appendChild(span);
+        }
+        tr.appendChild(tdCov);
+      }
 
       // Hover cross-linking
       tr.addEventListener("mouseenter", (function (id) {
@@ -467,6 +705,19 @@
       tr.addEventListener("mouseleave", function () { onFormatUnhover(); });
 
       detailsBody.appendChild(tr);
+    }
+  }
+
+  function rebuildDetailsHeader(activeCircles) {
+    // Remove existing coverage th if present
+    var existingCov = detailsHead.querySelector(".coverage-th");
+    if (existingCov) detailsHead.removeChild(existingCov);
+
+    if (activeCircles.length > 0) {
+      var th = document.createElement("th");
+      th.className = "coverage-th";
+      th.textContent = "Lens Coverage";
+      detailsHead.appendChild(th);
     }
   }
 
@@ -494,6 +745,33 @@
     moveTooltip(e);
   }
 
+  function showCircleTooltip(c, e) {
+    var html =
+      '<div class="tt-name">' + escapeHTML(c.name) + '</div>' +
+      '<div class="tt-row">Diameter: ' + c.diameter + ' mm</div>';
+    if (c.notes) {
+      html += '<div class="tt-row">' + escapeHTML(c.notes) + '</div>';
+    }
+
+    // Coverage analysis for selected formats
+    var selectedFormats = getSelectedFormats();
+    if (selectedFormats.length > 0) {
+      html += '<div class="tt-coverage-header">Coverage:</div>';
+      for (var i = 0; i < selectedFormats.length; i++) {
+        var f = selectedFormats[i];
+        var covered = f.diagonal <= c.diameter;
+        var cls = covered ? "tt-coverage-ok" : "tt-coverage-no";
+        var icon = covered ? "\u2713" : "\u2717";
+        html += '<div class="tt-row ' + cls + '">' + icon + ' ' + escapeHTML(f.name) +
+          ' (\u2300' + f.diagonal.toFixed(1) + 'mm)</div>';
+      }
+    }
+
+    tooltipEl.innerHTML = html;
+    tooltipEl.classList.add("visible");
+    moveTooltip(e);
+  }
+
   function moveTooltip(e) {
     var x = e.clientX + 14;
     var y = e.clientY + 14;
@@ -516,6 +794,7 @@
   // ===== Hover Cross-linking =====
   function onFormatHover(id) {
     state.highlighted = id;
+    state.highlightedCircle = null;
     applyHighlightState();
   }
 
@@ -524,50 +803,101 @@
     applyHighlightState();
   }
 
-  function applyHighlightState() {
-    var id = state.highlighted;
+  function onCircleHover(id) {
+    state.highlightedCircle = id;
+    state.highlighted = null;
+    applyHighlightState();
+  }
 
-    // Controls rows
+  function onCircleUnhover() {
+    state.highlightedCircle = null;
+    applyHighlightState();
+  }
+
+  function applyHighlightState() {
+    var formatId = state.highlighted;
+    var circleId = state.highlightedCircle;
+    var anyHighlight = formatId !== null || circleId !== null;
+
+    // Format control rows
     var rows = controlsListEl.querySelectorAll(".format-row");
     for (var i = 0; i < rows.length; i++) {
       var rowId = rows[i].getAttribute("data-format-id");
       rows[i].classList.remove("highlighted", "dimmed");
-      if (id !== null) {
-        rows[i].classList.add(rowId === id ? "highlighted" : "dimmed");
+      if (anyHighlight) {
+        rows[i].classList.add(rowId === formatId ? "highlighted" : "dimmed");
       }
     }
 
-    // SVG groups
+    // Circle control rows
+    var circleRows = circlesListEl.querySelectorAll(".circle-row");
+    for (var i = 0; i < circleRows.length; i++) {
+      var rowCid = circleRows[i].getAttribute("data-circle-id");
+      circleRows[i].classList.remove("highlighted", "dimmed");
+      if (anyHighlight) {
+        circleRows[i].classList.add(rowCid === circleId ? "highlighted" : "dimmed");
+      }
+    }
+
+    // SVG format groups
     var groups = svgEl.querySelectorAll(".format-group");
     for (var i = 0; i < groups.length; i++) {
       var gId = groups[i].getAttribute("data-format-id");
       groups[i].classList.remove("highlighted", "dimmed");
-      if (id !== null) {
-        groups[i].classList.add(gId === id ? "highlighted" : "dimmed");
+      if (anyHighlight) {
+        groups[i].classList.add(gId === formatId ? "highlighted" : "dimmed");
+      }
+    }
+
+    // SVG circle groups
+    var cGroups = svgEl.querySelectorAll(".circle-group");
+    for (var i = 0; i < cGroups.length; i++) {
+      var cgId = cGroups[i].getAttribute("data-circle-id");
+      cGroups[i].classList.remove("highlighted", "dimmed");
+      if (anyHighlight) {
+        cGroups[i].classList.add(cgId === circleId ? "highlighted" : "dimmed");
       }
     }
 
     // Boost stroke width on highlighted SVG rect
+    var maxDim = 10;
+    var sel = getSelectedFormats();
+    var activeC = getActiveCircles();
+    for (var j = 0; j < sel.length; j++) {
+      if (sel[j].width > maxDim) maxDim = sel[j].width;
+      if (sel[j].height > maxDim) maxDim = sel[j].height;
+    }
+    for (var j = 0; j < activeC.length; j++) {
+      if (activeC[j].diameter > maxDim) maxDim = activeC[j].diameter;
+    }
+    var baseStroke = maxDim * 0.003;
+
     for (var i = 0; i < groups.length; i++) {
       var gId = groups[i].getAttribute("data-format-id");
       var r = groups[i].querySelector("rect");
       if (r) {
-        var f = formatById[gId];
-        if (f) {
-          var maxDim = 10; // recalc rough max
-          var sel = getSelectedFormats();
-          for (var j = 0; j < sel.length; j++) {
-            if (sel[j].width > maxDim) maxDim = sel[j].width;
-            if (sel[j].height > maxDim) maxDim = sel[j].height;
-          }
-          var baseStroke = maxDim * 0.003;
-          r.setAttribute("stroke-width", gId === id ? baseStroke * 2.5 : baseStroke);
-        }
+        r.setAttribute("stroke-width", gId === formatId ? baseStroke * 2.5 : baseStroke);
       }
       // Bold label text on highlight
       var texts = groups[i].querySelectorAll("text");
       if (texts.length > 0) {
-        texts[0].setAttribute("font-weight", groups[i].getAttribute("data-format-id") === id ? "700" : "500");
+        texts[0].setAttribute("font-weight", gId === formatId ? "700" : "500");
+      }
+    }
+
+    // Boost stroke on highlighted circle
+    for (var i = 0; i < cGroups.length; i++) {
+      var cgId = cGroups[i].getAttribute("data-circle-id");
+      var circ = cGroups[i].querySelector("circle");
+      if (circ) {
+        var isHL = cgId === circleId;
+        circ.setAttribute("stroke-width", isHL ? baseStroke * 2.5 : baseStroke * 0.8);
+        circ.setAttribute("stroke-opacity", isHL ? 1 : 0.6);
+        circ.setAttribute("fill-opacity", isHL ? 0.08 : 0.04);
+      }
+      var cTexts = cGroups[i].querySelectorAll("text");
+      if (cTexts.length > 0) {
+        cTexts[0].setAttribute("opacity", cgId === circleId ? 1 : 0.7);
       }
     }
 
@@ -576,8 +906,8 @@
     for (var i = 0; i < trs.length; i++) {
       var trId = trs[i].getAttribute("data-format-id");
       trs[i].classList.remove("highlighted", "dimmed");
-      if (id !== null) {
-        trs[i].classList.add(trId === id ? "highlighted" : "dimmed");
+      if (anyHighlight) {
+        trs[i].classList.add(trId === formatId ? "highlighted" : "dimmed");
       }
     }
   }
