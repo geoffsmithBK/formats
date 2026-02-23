@@ -247,6 +247,48 @@ body {
   flex-shrink: 0;
 }
 
+/* ===== Reference Image Controls ===== */
+.ref-image-select-row {
+  padding: 4px 0;
+}
+
+.ref-image-select-row select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 0.85rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fafafa;
+  color: #333;
+  cursor: pointer;
+}
+
+.ref-opacity-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+}
+
+.ref-opacity-row label {
+  font-size: 0.8rem;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.ref-opacity-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: #555;
+}
+
+.ref-opacity-row span {
+  font-size: 0.75rem;
+  color: #888;
+  min-width: 32px;
+  text-align: right;
+}
+
 /* ===== Visualization Section ===== */
 .viz-section {
   padding: 12px;
