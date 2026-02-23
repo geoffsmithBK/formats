@@ -355,6 +355,16 @@ body {
   color: #888;
 }
 
+.footer a {
+  color: #667;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer a:hover {
+  color: #444;
+}
+
 /* ===== Responsive: Tablet (>=600px) ===== */
 @media (min-width: 600px) {
   .page {
