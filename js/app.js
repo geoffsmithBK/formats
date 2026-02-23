@@ -15,10 +15,6 @@
       label: "Cityscape",
       url: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=4000&auto=format"
     },
-    crowd: {
-      label: "Crowd",
-      url: "https://images.unsplash.com/photo-1557683316-973673baf926?w=4000&auto=format"
-    },
     portrait: {
       label: "Portrait",
       url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=4000&auto=format"
@@ -778,8 +774,8 @@
     }
     detailsSection.classList.remove("hidden");
 
-    // Sort by diagonal descending
-    selected.sort(function (a, b) { return b.diagonal - a.diagonal; });
+    // Sort by diagonal ascending (smallest first)
+    selected.sort(function (a, b) { return a.diagonal - b.diagonal; });
 
     var activeCircles = getActiveCircles();
     activeCircles.sort(function (a, b) { return a.diameter - b.diameter; });
