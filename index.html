@@ -43,6 +43,27 @@
           </div>
         </div>
         <div id="circles-list"></div>
+        <hr class="controls-divider">
+        <div class="controls-header">
+          <h2>Reference Image</h2>
+        </div>
+        <div id="ref-image-controls">
+          <div class="ref-image-select-row">
+            <select id="ref-image-select">
+              <option value="">None</option>
+              <option value="cityscape">Cityscape</option>
+              <option value="crowd">Crowd</option>
+              <option value="portrait">Portrait</option>
+              <option value="__custom">Custom...</option>
+            </select>
+            <input type="file" id="ref-image-file" accept="image/*" style="display:none">
+          </div>
+          <div class="ref-opacity-row" id="ref-opacity-row" style="display:none">
+            <label for="ref-opacity-slider">Opacity</label>
+            <input type="range" id="ref-opacity-slider" min="0" max="100" value="40">
+            <span id="ref-opacity-value">40%</span>
+          </div>
+        </div>
       </section>
 
       <!-- Visualization -->

@@ -9,6 +9,22 @@
 
   var SVG_NS = "http://www.w3.org/2000/svg";
 
+  // ===== Reference image presets =====
+  var REFERENCE_IMAGES = {
+    cityscape: {
+      label: "Cityscape",
+      url: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=4000&auto=format"
+    },
+    crowd: {
+      label: "Crowd",
+      url: "https://images.unsplash.com/photo-1557683316-973673baf926?w=4000&auto=format"
+    },
+    portrait: {
+      label: "Portrait",
+      url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=4000&auto=format"
+    }
+  };
+
   // ===== Merged data: format objects enriched with color/dasharray =====
   var formats = [];
   var formatById = {};
@@ -22,11 +38,14 @@
     selected: {},           // format id -> true
     highlighted: null,      // format id or null
     circles: {},            // circle id -> true
-    highlightedCircle: null // circle id or null
+    highlightedCircle: null,// circle id or null
+    refImage: null,         // null | "cityscape" | "crowd" | "portrait" | { custom: dataUrl }
+    refOpacity: 0.4         // 0.0 - 1.0
   };
 
   // ===== DOM refs =====
   var svgEl, emptyStateEl, controlsListEl, circlesListEl, detailsSection, detailsBody, detailsHead, tooltipEl;
+  var refImageSelectEl, refImageFileEl, refOpacityRow, refOpacitySliderEl, refOpacityValueEl;
 
   // ===== Init =====
   function init() {
@@ -38,12 +57,18 @@
     detailsBody = document.getElementById("details-body");
     detailsHead = document.querySelector("#details-table thead tr");
     tooltipEl = document.getElementById("tooltip");
+    refImageSelectEl = document.getElementById("ref-image-select");
+    refImageFileEl = document.getElementById("ref-image-file");
+    refOpacityRow = document.getElementById("ref-opacity-row");
+    refOpacitySliderEl = document.getElementById("ref-opacity-slider");
+    refOpacityValueEl = document.getElementById("ref-opacity-value");
 
     mergeFormatMetadata();
     mergeCircleData();
     buildControls();
     buildCircleControls();
     wireGlobalButtons();
+    wireRefImageControls();
 
     // Start with a useful default: select a few representative formats
     var defaults = ["ff-35mm", "4perf-s35", "gfx-eterna-og", "imax", "6x7"];
@@ -265,6 +290,64 @@
     document.getElementById("btn-circles-none").addEventListener("click", deselectAllCircles);
   }
 
+  // ===== Reference Image Controls =====
+  function wireRefImageControls() {
+    refImageSelectEl.addEventListener("change", function () {
+      var val = refImageSelectEl.value;
+      if (val === "") {
+        state.refImage = null;
+        refImageFileEl.value = "";
+      } else if (val === "__custom") {
+        refImageFileEl.click();
+        return;
+      } else {
+        state.refImage = val;
+        refImageFileEl.value = "";
+      }
+      updateRefImageUI();
+      render();
+    });
+
+    refImageFileEl.addEventListener("change", function () {
+      var file = refImageFileEl.files[0];
+      if (!file) {
+        syncRefImageDropdown();
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        state.refImage = { custom: e.target.result };
+        updateRefImageUI();
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    refOpacitySliderEl.addEventListener("input", function () {
+      state.refOpacity = parseInt(refOpacitySliderEl.value, 10) / 100;
+      refOpacityValueEl.textContent = refOpacitySliderEl.value + "%";
+      var img = svgEl.querySelector(".ref-image");
+      if (img) {
+        img.setAttribute("opacity", state.refOpacity);
+      }
+    });
+  }
+
+  function syncRefImageDropdown() {
+    if (state.refImage === null) {
+      refImageSelectEl.value = "";
+    } else if (typeof state.refImage === "string") {
+      refImageSelectEl.value = state.refImage;
+    } else {
+      refImageSelectEl.value = "__custom";
+    }
+  }
+
+  function updateRefImageUI() {
+    syncRefImageDropdown();
+    refOpacityRow.style.display = state.refImage ? "flex" : "none";
+  }
+
   // ===== State Mutations =====
   function toggleFormat(id, checked) {
     if (checked) {
@@ -440,6 +523,59 @@
     });
     frag.appendChild(lineH);
     frag.appendChild(lineV);
+
+    // Reference image (between crosshair and circles)
+    if (state.refImage !== null) {
+      var imgUrl;
+      if (typeof state.refImage === "string") {
+        imgUrl = REFERENCE_IMAGES[state.refImage] ? REFERENCE_IMAGES[state.refImage].url : null;
+      } else if (state.refImage && state.refImage.custom) {
+        imgUrl = state.refImage.custom;
+      }
+
+      if (imgUrl) {
+        var imgW, imgH, clipCircleR;
+
+        if (activeCircles.length > 0) {
+          var largestCircle = activeCircles[0]; // already sorted largest-first
+          clipCircleR = largestCircle.diameter / 2;
+          imgW = largestCircle.diameter;
+          imgH = largestCircle.diameter;
+        } else {
+          imgW = maxW;
+          imgH = maxH;
+        }
+
+        if (clipCircleR) {
+          var defs = createSVGElement("defs", {});
+          var clipPath = createSVGElement("clipPath", { id: "ref-image-clip" });
+          var clipCircle = createSVGElement("circle", {
+            cx: 0, cy: 0, r: clipCircleR
+          });
+          clipPath.appendChild(clipCircle);
+          defs.appendChild(clipPath);
+          frag.appendChild(defs);
+        }
+
+        var imgAttrs = {
+          "class": "ref-image",
+          x: -imgW / 2,
+          y: -imgH / 2,
+          width: imgW,
+          height: imgH,
+          href: imgUrl,
+          preserveAspectRatio: "xMidYMid slice",
+          opacity: state.refOpacity
+        };
+
+        if (clipCircleR) {
+          imgAttrs["clip-path"] = "url(#ref-image-clip)";
+        }
+
+        var imgEl = createSVGElement("image", imgAttrs);
+        frag.appendChild(imgEl);
+      }
+    }
 
     // Image circles (largest first = back, behind format rects)
     for (var i = 0; i < activeCircles.length; i++) {

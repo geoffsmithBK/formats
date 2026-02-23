@@ -19,12 +19,13 @@ js/app.js           All logic: rendering, state, interaction, DOM generation
 
 - `js/formats.js` exposes `window.FORMAT_DATA`, `window.CATEGORY_META`, `window.IMAGE_CIRCLE_DATA`, and `window.IMAGE_CIRCLE_META` — pure data, zero dependencies
 - `js/app.js` is an IIFE implementing a simple imperative Model-View pattern
-  - State: `{ selected: {id: true}, highlighted: id|null, circles: {id: true}, highlightedCircle: id|null }`
+  - State: `{ selected, highlighted, circles, highlightedCircle, refImage, refOpacity }`
   - Any state change calls `render()` which fully rebuilds the SVG
   - Formats are normalized to landscape orientation during `mergeFormatMetadata()`
   - Image circles are enriched with color during `mergeCircleData()`
 - SVG coordinate system centered at origin (0,0); all rectangles and circles share a common center
-- SVG layer order (back to front): crosshair, image circles (largest first), format rectangles (largest first)
+  - `REFERENCE_IMAGES` constant maps preset keys to Unsplash CDN URLs
+- SVG layer order (back to front): crosshair, reference image (with optional circular clip), image circles (largest first), format rectangles (largest first)
 - Responsive: CSS Grid 2-column on desktop (>900px), single column on tablet/mobile
 
 ## Adding Formats
@@ -48,6 +49,7 @@ js/app.js           All logic: rendering, state, interaction, DOM generation
 - Categories: 35mm Cine, 35mm Still, Digital Cine, 65mm Cine, IMAX, Medium Format Still, Large Format
 - Image circles rendered as dashed SVG circles with subtle tinted fill, italic centered labels
 - Coverage check: `format.diagonal <= circle.diameter` means the lens covers the format
+- Reference image: optional background photo clipped to largest active image circle (or format bounding box if no circles active); built-in presets use Unsplash CDN, custom images loaded via FileReader as data URLs
 
 ## Feature Roadmap
 
