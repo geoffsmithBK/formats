@@ -43,6 +43,33 @@
   var svgEl, emptyStateEl, controlsListEl, circlesListEl, detailsSection, detailsBody, detailsHead, tooltipEl;
   var refImageSelectEl, refImageFileEl, refOpacityRow, refOpacitySliderEl, refOpacityValueEl;
 
+  // ===== Theme Toggle =====
+  function initThemeToggle() {
+    var btn = document.getElementById("theme-toggle");
+    var root = document.documentElement;
+
+    function updateIcon() {
+      var isLight = root.getAttribute("data-theme") === "light";
+      btn.innerHTML = isLight ? "&#9790;" : "&#9788;";
+      btn.title = isLight ? "Switch to dark mode" : "Switch to light mode";
+    }
+
+    updateIcon();
+
+    btn.addEventListener("click", function () {
+      var isLight = root.getAttribute("data-theme") === "light";
+      if (isLight) {
+        root.removeAttribute("data-theme");
+        localStorage.setItem("theme", "dark");
+      } else {
+        root.setAttribute("data-theme", "light");
+        localStorage.setItem("theme", "light");
+      }
+      updateIcon();
+      render();
+    });
+  }
+
   // ===== Init =====
   function init() {
     svgEl = document.getElementById("format-svg");
@@ -65,6 +92,7 @@
     buildCircleControls();
     wireGlobalButtons();
     wireRefImageControls();
+    initThemeToggle();
 
     // Start with a useful default: select a few representative formats
     var defaults = ["ff-35mm", "4perf-s35", "gfx-eterna-og", "imax", "6x7"];
@@ -509,13 +537,14 @@
     // Crosshair
     var chLen = Math.max(maxW, maxH) * 0.015;
     var chStroke = strokeW * 0.5;
+    var chColor = getComputedStyle(document.documentElement).getPropertyValue("--crosshair").trim() || "#bbb";
     var lineH = createSVGElement("line", {
       x1: -chLen, y1: 0, x2: chLen, y2: 0,
-      stroke: "#bbb", "stroke-width": chStroke
+      stroke: chColor, "stroke-width": chStroke
     });
     var lineV = createSVGElement("line", {
       x1: 0, y1: -chLen, x2: 0, y2: chLen,
-      stroke: "#bbb", "stroke-width": chStroke
+      stroke: chColor, "stroke-width": chStroke
     });
     frag.appendChild(lineH);
     frag.appendChild(lineV);

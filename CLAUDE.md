@@ -64,4 +64,4 @@ js/app.js           All logic: rendering, state, interaction, DOM generation
 - Area comparison (bar chart or multiplier readout)
 - More digital cine formats (RED Monstro, Sony Venice 2, ARRI Alexa 35, BMD URSA Cine)
 - Shareable state via URL hash
-- Dark mode
+- ~~Dark mode~~ (implemented — default theme, toggle in header)
