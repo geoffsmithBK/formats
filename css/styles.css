@@ -1,28 +1,28 @@
 /* ===== Theme Variables ===== */
 :root {
-  --bg: #1a1a2e;
-  --bg-card: #222240;
-  --bg-card-alt: #2a2a48;
-  --bg-hover: #2e2e50;
-  --bg-svg: #16162a;
-  --border: #3a3a5c;
-  --border-light: #2e2e50;
-  --text: #e0e0f0;
-  --text-heading: #f0f0ff;
-  --text-secondary: #a0a0c0;
-  --text-dim: #7878a0;
-  --text-muted: #6868a0;
-  --link: #8888cc;
-  --link-hover: #aaaaee;
-  --btn-bg: #2a2a48;
-  --btn-border: #4a4a6c;
-  --btn-hover: #3a3a5c;
-  --accent-color: #7070a0;
-  --table-border: #2e2e50;
-  --table-header-border: #4a4a6c;
-  --crosshair: #4a4a6c;
-  --svg-border: #2e2e50;
-  --highlight-shadow: rgba(200, 200, 255, 0.25);
+  --bg: #111111;
+  --bg-card: #1c1c1c;
+  --bg-card-alt: #222222;
+  --bg-hover: #2a2a2a;
+  --bg-svg: #161616;
+  --border: #2e2e2e;
+  --border-light: #252525;
+  --text: #d4d4d4;
+  --text-heading: #eeeeee;
+  --text-secondary: #909090;
+  --text-dim: #6a6a6a;
+  --text-muted: #585858;
+  --link: #aaaaaa;
+  --link-hover: #cccccc;
+  --btn-bg: #1e1e1e;
+  --btn-border: #363636;
+  --btn-hover: #2a2a2a;
+  --accent-color: #666666;
+  --table-border: #252525;
+  --table-header-border: #333333;
+  --crosshair: #3a3a3a;
+  --svg-border: #252525;
+  --highlight-shadow: rgba(255, 255, 255, 0.15);
 }
 
 [data-theme="light"] {
