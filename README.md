@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="img/formats.png">
+</p>
+
 # Film & Sensor Format Comparison Tool
 
 Interactive single-page web app that visualizes the relative sizes of film and digital sensor formats as overlapping, centered SVG rectangles drawn to true scale.
 
-**[Open `index.html` in any browser](index.html)** — no build step, no server, no dependencies.
+**[Try it live →](https://geoffsmithbk.github.io/formats/)**
 
 ## Features
 
